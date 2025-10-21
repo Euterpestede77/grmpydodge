@@ -105,8 +105,7 @@
     style.textContent='#__dbg{position:fixed;left:8px;bottom:8px;right:8px;max-height:45vh;overflow:auto;background:rgba(0,0,0,.85);color:#ffb3b3;padding:10px 12px;border:1px solid #d33;border-radius:8px;font:12px/1.45 ui-monospace,Menlo,Consolas,monospace;z-index:999999;white-space:pre-wrap}';
     document.head.appendChild(style);
     function ensure(){let b=document.getElementById('__dbg'); if(!b){ b=document.createElement('pre'); b.id='__dbg'; document.body.appendChild(b);} return b;}
-    function show(m){ ensure().textContent += m + '
-'; }
+    function show(m){ ensure().textContent += m + '\n'; }  // <-- FIXED
     window.__dbgShow = show;
     window.addEventListener('error', e=>{ show('[ERR] '+e.message+' @ '+e.filename+':'+e.lineno+':'+e.colno); });
     window.addEventListener('unhandledrejection', e=>{ show('[REJ] '+(e.reason && (e.reason.stack||e.reason.message||e.reason))); });
@@ -597,8 +596,8 @@ function draw(){
   // Music tokens — purple note
   for(const mu of musics){ ctx.save(); ctx.translate(mu.x, mu.y); ctx.rotate(mu.rot); drawMusicIcon(ctx,18); ctx.restore(); }
 
-  // player sprite
-  const dogeImg = window._dogeImg || (window._dogeImg = (()=>{ const i=new Image(); i.src='Player_doge.png'; return i; })());
+  // player sprite (NOTE: case-sensitive filename on GitHub Pages)
+  const dogeImg = window._dogeImg || (window._dogeImg = (()=>{ const i=new Image(); i.src='player_doge.png'; return i; })()); /* <-- FIXED to lowercase */
   if(dogeImg.complete) ctx.drawImage(dogeImg,player.x,player.y,player.w,player.h);
   else { ctx.fillStyle='#7cf2ff'; ctx.fillRect(player.x,player.y,player.w,player.h); }
 
