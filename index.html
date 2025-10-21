@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Grumpy Dodge — The Attack of the Broccoli (v3)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --accent:#7cf2ff;
+      --chip-bg: rgba(255,255,255,.10);
+      --chip-bd: rgba(255,255,255,.18);
+      --chip-bg-cta: rgba(0,255,255,.15);
+      --chip-bd-cta: rgba(0,255,255,.45);
+      --red:#ff4d4d;
+      --gold:#ffd86b;
+      --cyan:#7cf2ff;
+      --purple:#c2a5ff;
+      --muted:#a8b3c1;
+      --ink:#e7eef7;
+      --panel: rgba(18,22,28,.72);
+      --panel-bd: rgba(255,255,255,.10);
+      --row: rgba(255,255,255,.06);
+      --row-bd: rgba(255,255,255,.12);
+      --pill: rgba(255,255,255,.10);
+      --pill-bd: rgba(255,255,255,.18);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; color:var(--ink); background:#000;
+      font: 14px/1.45 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      letter-spacing:.2px;
+    }
+    h2{ margin:22px 0 12px; text-align:center; font-size:20px; font-weight:700; letter-spacing:.5px; }
+    .title-cat{display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:50%; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.16); box-shadow:0 2px 10px rgba(0,0,0,.25); margin-right:8px; font-size:16px}
+
+    #wrap{ width: min(1100px, 96vw); margin: 0 auto 90px; }
+    #content{ margin-left: 330px; }
+
+    /* ===== Run-style leaderboard (slightly compressed) ===== */
+    #right{
+      position:fixed; left:10px; top:56px; width:300px; max-height:calc(100vh - 70px); overflow:auto;
+      padding:10px 10px 12px; background:var(--panel); border:1px solid var(--panel-bd);
+      border-radius:14px; box-shadow: 0 8px 24px rgba(0,0,0,.55); z-index:9998;
+    }
+    #right h3{ margin:4px 0 10px; font-weight:800; font-size:14px; text-align:center }
+    #lb-tabs{display:flex; gap:8px; justify-content:center; margin-bottom:8px}
+    .tab{background:var(--pill); border:1px solid var(--pill-bd); color:var(--ink); padding:6px 10px; border-radius:999px; cursor:pointer}
+    .tab.active{background:var(--chip-bg-cta); border-color:var(--chip-bd-cta)}
+
+    #lb-sub{ color:#cfd7e2; font-size:12px; text-align:center; margin:4px 0 8px; }
+
+    #lb-list{display:grid; gap:6px; margin-bottom:12px; max-height:420px; overflow:auto; padding-right:4px}
+    .lb-row{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      padding:6px 8px; border-radius:12px; background:var(--row); border:1px solid var(--row-bd);
+    }
+    .lb-left{ display:flex; align-items:center; gap:8px; min-width:0; }
+    .lb-rank{ width:16px; text-align:right; color:#cbd6e2; }
+    .lb-name{ color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px; }
+    .lb-score{ color:var(--gold); font-weight:800; }
+    .lb-pill{ margin-left:auto; font-size:12px; color:#d7e0ea; background:var(--pill); border:1px solid var(--pill-bd); padding:2px 7px; border-radius:999px; }
+
+    #me-box{display:grid; gap:8px; padding-top:6px}
+    #name{width:100%; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.16); background:rgba(0,0,0,.25); color:#fff}
+    #submitScore,#tweetScore{
+      padding:9px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.2);
+      background:rgba(255,255,255,.05); color:#fff; cursor:pointer
+    }
+    #submitScore.glow{box-shadow:0 0 0 2px rgba(255,216,107,.25), 0 0 18px rgba(255,216,107,.35) inset}
+    #me-hint{color:#a8b3c1; font-size:12px}
+
+    /* ===== HUD ===== */
+    #hud{display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:center; padding:10px;
+      border:1px solid rgba(255,255,255,.14); border-radius:14px; background: rgba(255,255,255,.03);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.06); font-size:13px}
+    #hud span{color:#fff}
+    .hud-chip{ display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px;
+      background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.10); }
+    .hud-chip .label{color:#c9d6e2}
+    .hud-timer{min-width:30px; text-align:right; font-weight:700}
+    .active-magnet .hud-timer{ color: var(--gold); text-shadow: 0 0 8px rgba(255,216,107,.45); }
+    .active-slow   .hud-timer{ color: var(--cyan); text-shadow: 0 0 10px rgba(124,242,255,.55); }
+    .active-swap   .hud-timer{ color: var(--purple); text-shadow: 0 0 10px rgba(194,165,255,.6); }
+    .active-mirror .hud-timer{ color: #b689ff; text-shadow: 0 0 10px rgba(182,137,255,.65); }
+    .active-hoodie .hud-timer{ color: var(--gold); text-shadow: 0 0 12px rgba(255,216,107,.65); }
+    .active-music  .hud-timer{ color: #ff86ff; text-shadow: 0 0 12px rgba(255,134,255,.7); }
+
+    canvas{display:block; width:100%; height:auto; background:#060606; border:1px solid rgba(255,255,255,.12);
+      border-radius:16px; box-shadow: inset 0 2px 20px rgba(0,0,0,.85), 0 10px 40px rgba(0,0,0,.55)}
+
+    #link-tray{ position:fixed; top:10px; right:10px; z-index:9999; display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+    .link-chip{ font: 12px/1.1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; padding:6px 10px; border-radius:999px; text-decoration:none; background:var(--chip-bg); color:#fff; border:1px solid var(--chip-bd); backdrop-filter: blur(3px); transition: background .15s, transform .05s, border-color .15s, color .15s; display:inline-flex; align-items:center; gap:6px; cursor:pointer; }
+    .link-chip:hover{ background:rgba(255,255,255,.22); border-color:rgba(255,255,255,.35); transform:translateY(-1px); }
+
+    @media (max-width: 1100px){ #content{ margin-left: 0; } #right{ position:static; width:auto; max-height:none; margin: 10px; } }
+  </style>
+</head>
+<body>
+  <div id="link-tray">
+    <a class="link-chip" href="https://x.com/GrumpWear" target="_blank">X / @grumpwear</a>
+    <a class="link-chip" href="https://www.tiktok.com/@grumpwear" target="_blank">TikTok / @grumpwear</a>
+    <a class="link-chip" href="https://www.instagram.com/grumwearbygrmpy/" target="_blank">Instagram</a>
+  </div>
+
+  <h2><span class="title-cat">🐱</span> Grumpy Dodge — The Attack of the Broccoli</h2>
+
+  <div id="wrap">
+    <aside id="right" aria-label="Leaderboard">
+      <h3>These are the grumpiest</h3>
+      <div id="lb-tabs">
+        <button class="tab active" id="tab-week">This Week</button>
+        <button class="tab" id="tab-all">All-Time</button>
+      </div>
+      <div id="lb-sub">This week's grumpiest</div>
+      <div id="lb-list"></div>
+
+      <div id="me-box">
+        <label for="name">Your name</label>
+        <input id="name" type="text" maxlength="20" placeholder="Type your name…" />
+        <button id="submitScore" disabled>Submit Score</button>
+        <button id="tweetScore">Tweet Score</button>
+        <div id="me-hint">Finish a run to submit your score.</div>
+      </div>
+    </aside>
+
+    <div id="content">
+      <div id="hud">
+        <span class="hud-chip"><span class="label">Score:</span> <span id="score">0</span></span>
+        <span class="hud-chip"><span class="label">Best:</span> <span id="best">0</span></span>
+        <span class="hud-chip"><span class="label">Speed:</span> <span id="speed">1.00</span></span>
+        <span class="hud-chip"><span class="label">Tokens:</span> <span id="tokens">0</span></span>
+        <span class="hud-chip" id="magChip"><span class="label">Magnet:</span> <span id="magLeft" class="hud-timer">0.0</span>s</span>
+        <span class="hud-chip" id="slowChip"><span class="label">Slowdown:</span> <span id="slowLeft" class="hud-timer">0.0</span>s</span>
+        <span class="hud-chip" id="swapChip"><span class="label">Swap:</span> <span id="swapLeft" class="hud-timer">0.0</span>s</span>
+        <span class="hud-chip" id="mirrorChip"><span class="label">Mirror:</span> <span id="mirrorLeft" class="hud-timer">0.0</span>s</span>
+        <span class="hud-chip" id="hoodieChip"><span class="label">Hoodie:</span> <span id="hoodieLeft" class="hud-timer">0.0</span>s</span>
+        <span class="hud-chip" id="musicChip"><span class="label">Music:</span> <span id="musicLeft" class="hud-timer">0.0</span>s</span>
+      </div>
+      <canvas id="game" width="800" height="420" aria-label="Game canvas"></canvas>
+      <p id="sarcasm" style="text-align:center;">Running… from vegetables.</p>
+      <p style="text-align:center"><b>Controls:</b> ←/A and →/D = Move • P = Pause • R = Restart</p>
+    </div>
+  </div>
+
+<script>
+// =================== Canvas ===================
+const C = document.getElementById('game');
+const ctx = C.getContext('2d');
+const W = () => C.width; const H = () => C.height;
+
+// ============ WebAudio tiny synth & DnB loop ============
+let audioCtx;
+function ensureAudio(){ if(!audioCtx){ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); } }
+function beep(freq=440, dur=0.12, type='sine', gain=0.06, when=0){
+  if(!audioCtx) return; const t = audioCtx.currentTime + when;
+  const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
+  o.type=type; o.frequency.setValueAtTime(freq,t);
+  g.gain.setValueAtTime(0,t);
+  g.gain.linearRampToValueAtTime(gain,t+0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(g).connect(audioCtx.destination); o.start(t); o.stop(t+dur+0.02);
+}
+function toneSequence(freqs=[], dur=0.1, gap=0.02, type='sine', gain=0.06){
+  ensureAudio(); let off=0; freqs.forEach(f=>{ beep(f,dur,type,gain,off); off+=dur+gap; });
+}
+function sfxToken(){ toneSequence([660,880],0.09,0.03,'triangle',0.06); }
+function sfxGameOver(){ toneSequence([880,740,660,550,440],0.11,0.035,'sawtooth',0.06); }
+function sfxPickup(){ toneSequence([880],0.06,0,'sine',0.08); }
+function sfxMirrorStart(){ toneSequence([620,760,920],0.05,0.015,'square',0.07); }
+function sfxMirrorEnd(){ toneSequence([540],0.08,0,'sine',0.06); }
+function sfxHoodieStart(){ toneSequence([660,880,1320],0.1,0.03,'triangle',0.08); }
+function sfxHoodieEnd(){ toneSequence([660,520],0.08,0.02,'triangle',0.06); }
+function sfxMusicStart(){ toneSequence([660,880,990],0.05,0.015,'square',0.08); }
+function sfxMusicEnd(){ toneSequence([660,520,440],0.06,0.02,'sine',0.07); }
+function userGesture(){ ensureAudio(); removeEventListener('keydown',userGesture); removeEventListener('pointerdown',userGesture);} 
+addEventListener('keydown',userGesture); addEventListener('pointerdown',userGesture);
+
+// simple DnB loop scheduler
+let musicOn=false, musicTempo=160, nextNoteTime=0, currentStep=0, schedulerId=null;
+let musicPulse=0; // visual pulse strength (0..1)
+function startMusic(){
+  if(!audioCtx) return; if(musicOn) return;
+  musicOn=true; musicTempo=160; // BPM
+  const now=audioCtx.currentTime;
+  nextNoteTime = now + 0.05; // slight delay
+  currentStep=0;
+  if(schedulerId) clearInterval(schedulerId);
+  schedulerId = setInterval(schedule, 25); // schedule ahead
+}
+function stopMusic(){
+  musicOn=false;
+  if(schedulerId){ clearInterval(schedulerId); schedulerId=null; }
+}
+function schedule(){
+  if(!musicOn || !audioCtx) return;
+  const secondsPerBeat = 60.0 / musicTempo; // quarter note
+  while(nextNoteTime < audioCtx.currentTime + 0.15){
+    // 16th grid: 4 steps per beat -> 16 steps per bar
+    const stepInBeat = currentStep % 4;
+    const beatInBar = Math.floor(currentStep/4)%4;
+    const isQuarter = stepInBeat===0;
+    const isEighth = stepInBeat%2===0;
+
+    // Kick on 1 & 3
+    if(isQuarter && (beatInBar===0 || beatInBar===2)) playKick(nextNoteTime);
+    // Snare on 2 & 4
+    if(isQuarter && (beatInBar===1 || beatInBar===3)) playSnare(nextNoteTime);
+    // Hat 8ths
+    if(isEighth) playHat(nextNoteTime, stepInBeat===0?0.06:0.04);
+    // Bass line pulse (square) on quarters, with simple pattern
+    if(isQuarter) playBass(nextNoteTime, [55,73,65,73][beatInBar]); // Hz approx: A1, D2, C2, D2
+
+    // visual pulse on quarters (strong)
+    if(isQuarter){ musicPulse = 1.0; }
+
+    currentStep = (currentStep+1)%16;
+    nextNoteTime += secondsPerBeat/4;
+  }
+}
+// instruments
+function playKick(t){
+  const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+  o.type='sine'; o.frequency.setValueAtTime(150,t);
+  o.frequency.exponentialRampToValueAtTime(50,t+0.12);
+  g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(0.20,t+0.005);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+0.14);
+  o.connect(g).connect(audioCtx.destination); o.start(t); o.stop(t+0.15);
+}
+function playSnare(t){
+  const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+  o.type='triangle'; o.frequency.setValueAtTime(1800,t);
+  g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(0.12,t+0.003);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+0.09);
+  o.connect(g).connect(audioCtx.destination); o.start(t); o.stop(t+0.1);
+}
+function playHat(t, gain=0.04){
+  const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+  o.type='square'; o.frequency.setValueAtTime(4000,t);
+  g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(gain,t+0.002);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+0.05);
+  o.connect(g).connect(audioCtx.destination); o.start(t); o.stop(t+0.06);
+}
+function playBass(t, hz){
+  const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+  o.type='square'; o.frequency.setValueAtTime(hz,t);
+  g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(0.12,t+0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+0.18);
+  o.connect(g).connect(audioCtx.destination); o.start(t); o.stop(t+0.2);
+}
+
+// =================== State ====================
+let running=false, paused=false, over=false; let tLast=0, dt=0, time=0;
+let baseSpeed=1; let score=0, best=+localStorage.getItem('gd_best')||0; let tokenCount=0;
+let keys={left:false,right:false};
+
+let slowDownTimer=0; const SLOW_FACTOR=0.45; // broccoli only
+let magnetTimer=0;  // token attraction
+let swapTimer=0;    // swap broccoli<->tokens
+let mirrorTimer=0;  // inverted controls
+let hoodieTimer=0;  // invincible + double coins
+let mirrorFlash=0;  // strong purple flash duration
+let musicTimer=0;   // frenzy
+const MAG_DURATION=10, SWAP_DURATION=10, MIRROR_DURATION=10, HOODIE_DURATION=7, MUSIC_DURATION=10;
+const MAG_SPEED=560, MAG_STRENGTH=7.5, TOK_MAX_SPEED=600;
+
+const player={ w:72, h:72, x:364, y:320, vx:0, maxV:320, acc:1800, frc:1200 };
+
+const broccoli=[]; // {x,y,r,vy,vx}
+const tokens=[];   // {x,y,r,vy,vx}
+const slows=[];    // SD {x,y,r,vy}
+const mags=[];     // magnet {x,y,r,vy}
+const swaps=[];    // swap {x,y,r,vy}
+const mirrors=[];  // mirror {x,y,r,vy,rot}
+const hoodies=[];  // hoodie {x,y,r,vy,phase}
+const musics=[];   // music note {x,y,r,vy,rot}
+
+// Sparkles for hoodie aura
+const sparks=[];   // {x,y,vx,vy,life}
+
+// ================== Spawning ==================
+let spawnBrocT=0, spawnTokT=0, spawnSlowT=6, spawnMagT=9, spawnSwapT=14, spawnMirrorT=11, spawnHoodieT=13, spawnMusicT=15;
+function rand(a,b){ return Math.random()*(b-a)+a; }
+function spawnBroc(){ const r=rand(14,22); broccoli.push({x:rand(r,W()-r), y:-r, r, vy:rand(120,220)*speed()}); }
+function spawnTok(){ const r=rand(10,16); tokens.push({x:rand(r,W()-r), y:-r, r, vy:rand(140,240)*(0.9+0.2*Math.random())*speed(), vx:0}); }
+function spawnSlow(){ const r=16; slows.push({x:rand(r,W()-r), y:-r, r, vy:rand(120,200)*speed()}); }
+function spawnMag(){ const r=18; mags.push({x:rand(r,W()-r), y:-r, r, vy:rand(120,200)*speed()}); }
+function spawnSwap(){ const r=18; swaps.push({x:rand(r,W()-r), y:-r, r, vy:rand(120,200)*speed()}); }
+function spawnMirror(){ const r=18; mirrors.push({x:rand(r,W()-r), y:-r, r, vy:rand(120,200)*speed(), rot:rand(0,Math.PI*2)}); }
+function spawnHoodie(){ const r=18; hoodies.push({x:rand(r,W()-r), y:-r, r, vy:rand(120,200)*speed(), phase:0}); }
+function spawnMusic(){ const r=18; musics.push({x:rand(r,W()-r), y:-r, r, vy:rand(120,200)*speed(), rot:0}); }
+
+function speed(){ // includes music frenzy multiplier
+  return (baseSpeed) * (musicTimer>0 ? 1.5 : 1);
+}
+
+function reset(){
+  score=0; tokenCount=0; baseSpeed=1;
+  slowDownTimer=0; magnetTimer=0; swapTimer=0; mirrorTimer=0; hoodieTimer=0; mirrorFlash=0; musicTimer=0; stopMusic();
+  broccoli.length=0; tokens.length=0; slows.length=0; mags.length=0; swaps.length=0; mirrors.length=0; hoodies.length=0; musics.length=0; sparks.length=0;
+  over=false; time=0;
+  player.x=(W()-player.w)/2; player.y=H()-player.h-16; player.vx=0;
+}
+
+// ==================== Input ===================
+addEventListener('keydown',e=>{
+  if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A') keys.left=true;
+  if(e.key==='ArrowRight'||e.key==='d'||e.key==='D') keys.right=true;
+  if(e.key==='p'||e.key==='P') togglePause();
+  if(e.key==='r'||e.key==='R'){ reset(); running=true; requestAnimationFrame(loop);}
+});
+addEventListener('keyup',e=>{
+  if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A') keys.left=false;
+  if(e.key==='ArrowRight'||e.key==='d'||e.key==='D') keys.right=false;
+});
+
+// =================== Game Loop =================
+function start(){ reset(); running=true; requestAnimationFrame(loop); }
+function togglePause(){ if(!running||over) return; paused=!paused; if(!paused) requestAnimationFrame(loop); }
+function loop(t){
+  if(!running) return;
+  if(paused){ draw(); return; }
+  if(!tLast) tLast=t; dt=Math.min(0.033,(t-tLast)/1000); tLast=t; time+=dt;
+  baseSpeed = 1 + Math.min(2.5, time/45);
+  update(dt); draw();
+  if(!over) requestAnimationFrame(loop);
+}
+
+function update(dt){
+  // input (mirror flips controls)
+  let dir = (keys.right?1:0) - (keys.left?1:0);
+  if(mirrorTimer>0) dir = -dir;
+  const playerSpeedMul = (musicTimer>0?1.2:1); // tiny buff during frenzy to feel snappier
+  player.vx += dir * player.acc * dt * playerSpeedMul;
+  if(dir===0){
+    if(Math.abs(player.vx)<player.frc*dt) player.vx=0; else player.vx += player.vx>0?-player.frc*dt:player.frc*dt;
+  }
+  player.vx = Math.max(-player.maxV*playerSpeedMul, Math.min(player.maxV*playerSpeedMul, player.vx));
+  player.x = Math.max(6, Math.min(W()-player.w-6, player.x + player.vx*dt));
+
+  // timers -> HUD classes
+  if(slowDownTimer>0){ slowDownTimer=Math.max(0,slowDownTimer-dt); }
+  document.getElementById('slowLeft').textContent = slowDownTimer.toFixed(1);
+  document.getElementById('slowChip').classList.toggle('active-slow', slowDownTimer>0);
+
+  if(magnetTimer>0){ magnetTimer=Math.max(0,magnetTimer-dt); }
+  document.getElementById('magLeft').textContent = magnetTimer.toFixed(1);
+  document.getElementById('magChip').classList.toggle('active-magnet', magnetTimer>0);
+
+  if(swapTimer>0){ swapTimer=Math.max(0,swapTimer-dt); }
+  document.getElementById('swapLeft').textContent = swapTimer.toFixed(1);
+  document.getElementById('swapChip').classList.toggle('active-swap', swapTimer>0);
+
+  if(mirrorTimer>0){
+    mirrorTimer=Math.max(0,mirrorTimer-dt);
+    if(mirrorTimer===0){ sfxMirrorEnd(); }
+  }
+  document.getElementById('mirrorLeft').textContent = mirrorTimer.toFixed(1);
+  document.getElementById('mirrorChip').classList.toggle('active-mirror', mirrorTimer>0);
+  if(mirrorFlash>0){ mirrorFlash=Math.max(0, mirrorFlash-dt); }
+
+  if(hoodieTimer>0){
+    hoodieTimer=Math.max(0,hoodieTimer-dt);
+    // spawn a few sparks
+    for(let i=0;i<2;i++){
+      const x = player.x + player.w/2 + rand(-12,12);
+      const y = player.y + player.h/2 + rand(10,22);
+      sparks.push({x,y, vx:rand(-20,20), vy:rand(-40,-10), life:rand(0.4,0.9)});
+    }
+    if(hoodieTimer===0){ sfxHoodieEnd(); }
+  }
+  document.getElementById('hoodieLeft').textContent = hoodieTimer.toFixed(1);
+  document.getElementById('hoodieChip').classList.toggle('active-hoodie', hoodieTimer>0);
+
+  if(musicTimer>0){
+    musicTimer=Math.max(0,musicTimer-dt);
+    if(musicTimer===0){ stopMusic(); sfxMusicEnd(); }
+  }
+  document.getElementById('musicLeft').textContent = musicTimer.toFixed(1);
+  document.getElementById('musicChip').classList.toggle('active-music', musicTimer>0);
+
+  // decay visual music pulse
+  if(musicPulse>0){ musicPulse *= Math.pow(0.001, dt); if(musicPulse<0.01) musicPulse=0; }
+
+  // update sparks
+  for(let i=sparks.length-1;i>=0;i--){
+    const sp=sparks[i]; sp.x+=sp.vx*dt; sp.y+=sp.vy*dt; sp.vy+=20*dt; sp.life-=dt; if(sp.life<=0) sparks.splice(i,1);
+  }
+
+  // spawns (faster during frenzy)
+  const speedMul = (musicTimer>0?1.5:1);
+  spawnBrocT-=dt; spawnTokT-=dt; spawnSlowT-=dt*speedMul; spawnMagT-=dt*speedMul; spawnSwapT-=dt*speedMul; spawnMirrorT-=dt*speedMul; spawnHoodieT-=dt*speedMul; spawnMusicT-=dt*speedMul;
+  if(spawnBrocT<=0){ spawnBroc(); spawnBrocT=rand(0.25,0.55)/baseSpeed; }
+  if(spawnTokT<=0){ spawnTok(); spawnTokT=rand(0.45,0.95)/baseSpeed; }
+  if(spawnSlowT<=0){ spawnSlow(); spawnSlowT=rand(18,28)/Math.sqrt(baseSpeed); }
+  if(spawnMagT<=0){ spawnMag();  spawnMagT =rand(20,30)/Math.sqrt(baseSpeed); }
+  if(spawnSwapT<=0){ spawnSwap(); spawnSwapT=rand(20,30)/Math.sqrt(baseSpeed); }
+  if(spawnMirrorT<=0){ spawnMirror(); spawnMirrorT=rand(20,30)/Math.sqrt(baseSpeed); }
+  if(spawnHoodieT<=0){ spawnHoodie(); spawnHoodieT=rand(20,30)/Math.sqrt(baseSpeed); }
+  if(spawnMusicT<=0){ spawnMusic(); spawnMusicT=rand(25,30)/Math.sqrt(baseSpeed); }
+
+  // move & cull
+  const brocMul = slowDownTimer>0 ? SLOW_FACTOR : 1;
+  const frenzyMul = (musicTimer>0?1.5:1);
+  for(let i=broccoli.length-1;i>=0;i--){
+    const b=broccoli[i];
+    // magnet attracts collectible item: during swap, broccoli is collectible
+    if(magnetTimer>0 && swapTimer>0){
+      const px=player.x+player.w/2, py=player.y+player.h/2;
+      const dx=px-b.x, dy=py-b.y; const dist=Math.hypot(dx,dy)||1;
+      const desVx=(dx/dist)*MAG_SPEED; const desVy=(dy/dist)*MAG_SPEED;
+      const k=1-Math.exp(-MAG_STRENGTH*dt);
+      b.vx = (b.vx||0) + (desVx-(b.vx||0))*k;
+      b.vy = (b.vy||0) + (desVy-(b.vy||0))*k;
+      const sp=Math.hypot(b.vx,b.vy); if(sp>TOK_MAX_SPEED){ b.vx*=TOK_MAX_SPEED/sp; b.vy*=TOK_MAX_SPEED/sp; }
+      b.x += (b.vx||0)*dt*frenzyMul;
+    }
+    b.y+=b.vy*dt*brocMul*frenzyMul;
+    if(b.y-b.r>H()) broccoli.splice(i,1);
+  }
+
+  for(let i=tokens.length-1;i>=0;i--){
+    const c=tokens[i];
+    if(c.vx===undefined) c.vx=0;
+    // magnet attracts tokens only when NOT swapped
+    if(magnetTimer>0 && swapTimer<=0){
+      const px=player.x+player.w/2, py=player.y+player.h/2;
+      const dx=px-c.x, dy=py-c.y;
+      const dist=Math.hypot(dx,dy)||1;
+      const desVx=(dx/dist)*MAG_SPEED;
+      const desVy=(dy/dist)*MAG_SPEED;
+      const k=1-Math.exp(-MAG_STRENGTH*dt);
+      c.vx += (desVx-c.vx)*k;
+      c.vy += (desVy-c.vy)*k;
+      const sp=Math.hypot(c.vx,c.vy);
+      if(sp>TOK_MAX_SPEED){ c.vx*=TOK_MAX_SPEED/sp; c.vy*=TOK_MAX_SPEED/sp; }
+    }
+    c.x+=c.vx*dt*frenzyMul;
+    c.y+=c.vy*dt*frenzyMul;
+    if(c.y-c.r>H()) tokens.splice(i,1);
+  }
+
+  for(let i=slows.length-1;i>=0;i--){ const s=slows[i]; s.y+=s.vy*dt*frenzyMul; if(s.y-s.r>H()) slows.splice(i,1); }
+  for(let i=mags.length-1;i>=0;i--){ const m=mags[i]; m.y+=m.vy*dt*frenzyMul; if(m.y-m.r>H()) mags.splice(i,1); }
+  for(let i=swaps.length-1;i>=0;i--){ const sw=swaps[i]; sw.y+=sw.vy*dt*frenzyMul; if(sw.y-sw.r>H()) swaps.splice(i,1); }
+  for(let i=mirrors.length-1;i>=0;i--){ const mi=mirrors[i]; mi.y+=mi.vy*dt*frenzyMul; mi.rot += 0.8*dt*frenzyMul; if(mi.y-mi.r>H()) mirrors.splice(i,1); }
+  for(let i=hoodies.length-1;i>=0;i--){ const ho=hoodies[i]; ho.y+=ho.vy*dt*frenzyMul; ho.phase += 6*dt*frenzyMul; if(ho.y-ho.r>H()) hoodies.splice(i,1); }
+  for(let i=musics.length-1;i>=0;i--){ const mu=musics[i]; mu.y+=mu.vy*dt*frenzyMul; mu.rot += 0.8*dt*frenzyMul; if(mu.y-mu.r>H()) musics.splice(i,1); }
+
+  // collisions (consider swap + hoodie invincibility)
+  const px=player.x+player.w/2, py=player.y+player.h/2, pr=Math.min(player.w,player.h)*0.36;
+  const invincible = hoodieTimer>0;
+
+  if(swapTimer>0){
+    // broccoli => collectible
+    for(let i=broccoli.length-1;i>=0;i--){
+      const b=broccoli[i]; if(circleHit(px,py,pr,b.x,b.y,b.r)){
+        broccoli.splice(i,1); tokenCount++; score += (hoodieTimer>0?10:5); sfxToken();
+      }
+    }
+    // tokens => hazard (unless hoodie)
+    if(!invincible){
+      for(const c of tokens){ if(circleHit(px,py,pr,c.x,c.y,c.r)){ gameOver(); break; } }
+    }
+  }else{
+    // normal: broccoli hazard
+    if(!invincible){
+      for(const b of broccoli){ if(circleHit(px,py,pr,b.x,b.y,b.r)){ gameOver(); break; } }
+    }else{
+      // if invincible, hitting broccoli clears it
+      for(let i=broccoli.length-1;i>=0;i--){
+        const b=broccoli[i]; if(circleHit(px,py,pr,b.x,b.y,b.r)){ broccoli.splice(i,1); }
+      }
+    }
+    // coins collectible
+    for(let i=tokens.length-1;i>=0;i--){
+      const c=tokens[i]; if(circleHit(px,py,pr,c.x,c.y,c.r)){ tokens.splice(i,1); tokenCount++; score += (hoodieTimer>0?10:5); sfxToken(); }
+    }
+  }
+
+  // pick-ups
+  for(let i=slows.length-1;i>=0;i--){
+    const s=slows[i];
+    if(circleHit(px,py,pr,s.x,s.y,s.r)){ slows.splice(i,1); sfxPickup(); slowDownTimer=Math.max(slowDownTimer,10); }
+  }
+  for(let i=mags.length-1;i>=0;i--){
+    const m=mags[i];
+    if(circleHit(px,py,pr,m.x,m.y,m.r)){ mags.splice(i,1); sfxPickup(); magnetTimer=Math.max(magnetTimer,MAG_DURATION); }
+  }
+  for(let i=swaps.length-1;i>=0;i--){
+    const sw=swaps[i];
+    if(circleHit(px,py,pr,sw.x,sw.y,sw.r)){ swaps.splice(i,1); sfxPickup(); swapTimer=Math.max(swapTimer,SWAP_DURATION); }
+  }
+  for(let i=mirrors.length-1;i>=0;i--){
+    const mi=mirrors[i];
+    if(circleHit(px,py,pr,mi.x,mi.y,mi.r)){ mirrors.splice(i,1); sfxPickup(); sfxMirrorStart(); mirrorTimer=Math.max(mirrorTimer,MIRROR_DURATION); mirrorFlash=0.2; }
+  }
+  for(let i=hoodies.length-1;i>=0;i--){
+    const ho=hoodies[i];
+    if(circleHit(px,py,pr,ho.x,ho.y,ho.r)){ hoodies.splice(i,1); sfxPickup(); sfxHoodieStart(); hoodieTimer=Math.max(hoodieTimer,HOODIE_DURATION); }
+  }
+  for(let i=musics.length-1;i>=0;i--){
+    const mu=musics[i];
+    if(circleHit(px,py,pr,mu.x,mu.y,mu.r)){ musics.splice(i,1); sfxPickup(); sfxMusicStart(); musicTimer=Math.max(musicTimer,MUSIC_DURATION); startMusic(); }
+  }
+
+  // passive score
+  score += dt*2 * (musicTimer>0?1.2:1); // tiny bonus during frenzy
+
+  // HUD basics
+  document.getElementById('score').textContent=Math.floor(score);
+  document.getElementById('best').textContent=best;
+  document.getElementById('speed').textContent=(baseSpeed*(musicTimer>0?1.5:1)).toFixed(2);
+  document.getElementById('tokens').textContent=tokenCount;
+}
+
+function draw(){
+  ctx.clearRect(0,0,W(),H());
+
+  // subtle cyan aura around player (always), plus golden pulsing when hoodie active
+  const cx=player.x+player.w/2, cy=player.y+player.h/2;
+  let r=Math.max(player.w,player.h)*2.1;
+  const baseGrad=ctx.createRadialGradient(cx,cy,6,cx,cy,r);
+  baseGrad.addColorStop(0,'rgba(124,242,255,0.18)');
+  baseGrad.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=baseGrad; ctx.globalCompositeOperation='lighter';
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
+
+  // magnet aura
+  if(magnetTimer>0){
+    const mgrad=ctx.createRadialGradient(cx,cy,10,cx,cy,r*1.2);
+    mgrad.addColorStop(0,'rgba(255,216,107,0.18)');
+    mgrad.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=mgrad; ctx.beginPath(); ctx.arc(cx,cy,r*1.2,0,Math.PI*2); ctx.fill();
+  }
+
+  // hoodie pulsing aura
+  if(hoodieTimer>0){
+    const pulse = 0.5 + 0.5*Math.sin(time*4); // gentle pulse
+    const hgrad=ctx.createRadialGradient(cx,cy,8,cx,cy,r*(1.1+0.15*pulse));
+    hgrad.addColorStop(0,`rgba(255,216,107,${0.22+0.15*pulse})`);
+    hgrad.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=hgrad; ctx.beginPath(); ctx.arc(cx,cy,r*(1.1+0.15*pulse),0,Math.PI*2); ctx.fill();
+  }
+
+  ctx.globalCompositeOperation='source-over';
+
+  // tokens (draw as coins normally; as broccoli when swapped)
+  if(swapTimer<=0){
+    for(const c of tokens){ drawCoin(c.x,c.y,c.r); }
+  }else{
+    ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font='24px "Apple Color Emoji", "Segoe UI Emoji", system-ui';
+    for(const c of tokens){ ctx.save(); ctx.translate(c.x,c.y); ctx.rotate((c.y%200)/200*0.6); ctx.fillText('🥦',0,0); ctx.restore(); }
+  }
+
+  // broccoli (draw as broccoli normally; as coins when swapped)
+  if(swapTimer<=0){
+    ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font='24px "Apple Color Emoji", "Segoe UI Emoji", system-ui';
+    for(const b of broccoli){ ctx.save(); ctx.translate(b.x,b.y); ctx.rotate((b.y%200)/200*0.6); ctx.fillText('🥦',0,0); ctx.restore(); }
+  }else{
+    for(const b of broccoli){ drawCoin(b.x,b.y,Math.max(12,b.r*0.9)); }
+  }
+
+  // SD tokens
+  for(const s of slows){ drawSD(s.x,s.y,36,24,8); }
+
+  // Magnet tokens — horseshoe
+  for(const m of mags){ ctx.save(); ctx.translate(m.x,m.y); drawMagnetIcon(ctx,18); ctx.restore(); }
+
+  // Swap tokens — circular arrows
+  for(const sw of swaps){ ctx.save(); ctx.translate(sw.x, sw.y); ctx.rotate(((sw.y%360)/360)*Math.PI*2); drawSwapIcon(ctx,18); ctx.restore(); }
+
+  // Mirror tokens — spinning split circle
+  for(const mi of mirrors){ ctx.save(); ctx.translate(mi.x, mi.y); ctx.rotate(mi.rot); drawMirrorIcon(ctx,18); ctx.restore(); }
+
+  // Hoodie tokens — golden hoodie coin
+  for(const ho of hoodies){ ctx.save(); ctx.translate(ho.x, ho.y); drawHoodieIcon(ctx,18,ho.phase); ctx.restore(); }
+
+  // Music tokens — purple note
+  for(const mu of musics){ ctx.save(); ctx.translate(mu.x, mu.y); ctx.rotate(mu.rot); drawMusicIcon(ctx,18); ctx.restore(); }
+
+  // player sprite
+  const dogeImg = window._dogeImg || (window._dogeImg = (()=>{ const i=new Image(); i.src='Player_doge.png'; return i; })());
+  if(dogeImg.complete) ctx.drawImage(dogeImg,player.x,player.y,player.w,player.h);
+  else { ctx.fillStyle='#7cf2ff'; ctx.fillRect(player.x,player.y,player.w,player.h); }
+
+  // hoodie sparks
+  if(hoodieTimer>0){
+    for(const sp of sparks){
+      ctx.globalAlpha = Math.max(0, sp.life);
+      ctx.fillStyle='rgba(255,216,107,0.9)';
+      ctx.fillRect(sp.x, sp.y, 2, 2);
+    }
+    ctx.globalAlpha=1;
+  }
+
+  // mirror purple flash and haze overlay
+  if(mirrorFlash>0){
+    ctx.fillStyle='rgba(182,137,255,0.65)'; ctx.fillRect(0,0,W(),H());
+  } else if(mirrorTimer>0){
+    const base=0.22;
+    const flick = 0.03 * (Math.sin(time*3)+Math.sin(time*1.2+1));
+    const fadeOut = mirrorTimer<1 ? (mirrorTimer/1) : 1;
+    ctx.fillStyle=`rgba(182,137,255,${(base+flick)*fadeOut})`;
+    ctx.fillRect(0,0,W(),H());
+  }
+
+  // music frenzy pulse overlay (strong, rhythmic)
+  if(musicTimer>0){
+    const alpha = Math.min(0.6, 0.6*musicPulse + 0.15*Math.abs(Math.sin(time*8)));
+    ctx.fillStyle = `rgba(255, 80, 200, ${alpha})`;
+    ctx.fillRect(0,0,W(),H());
+  }
+
+  if(paused) drawBanner('Paused — press P to resume');
+  if(over) drawBanner('Game Over — press R to restart');
+}
+
+function roundRectPath(ctx,x,y,w,h,r){
+  const rr=Math.min(r,w/2,h/2);
+  ctx.moveTo(x+rr,y);
+  ctx.arcTo(x+w,y,x+w,y+h,rr);
+  ctx.arcTo(x+w,y+h,x,y+h,rr);
+  ctx.arcTo(x,y+h,x,y,rr);
+  ctx.arcTo(x,y,x+w,y,rr);
+  ctx.closePath();
+}
+
+function drawCoin(x,y,r){
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+  ctx.fillStyle='rgba(255,216,107,0.95)'; ctx.fill();
+  ctx.lineWidth=2; ctx.strokeStyle='rgba(0,0,0,.35)'; ctx.stroke();
+  ctx.beginPath(); ctx.arc(x,y,r*0.55,0,Math.PI*2);
+  ctx.lineWidth=2; ctx.strokeStyle='rgba(140,100,10,.6)'; ctx.stroke();
+  ctx.font='bold 12px ui-monospace, Menlo, Consolas, monospace'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillStyle='rgba(80,60,10,.9)';
+  ctx.fillText('$',x,y+0.5);
+}
+
+function drawSD(cx,cy,w,h,rad){
+  ctx.save(); ctx.translate(cx,cy);
+  ctx.beginPath(); roundRectPath(ctx,-w/2,-h/2,w,h,rad);
+  ctx.fillStyle='rgba(124,242,255,0.18)'; ctx.fill();
+  ctx.lineWidth=2; ctx.strokeStyle='rgba(124,242,255,.55)'; ctx.stroke();
+  ctx.font='bold 12px ui-monospace, Menlo, Consolas, monospace'; ctx.fillStyle='#dffbff'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('SD',0,0); ctx.restore();
+}
+
+function drawSwapIcon(ctx,s){
+  ctx.save();
+  const r=s*0.85;
+  ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2);
+  ctx.fillStyle='rgba(194,165,255,0.14)'; ctx.fill();
+  ctx.lineWidth=2; ctx.strokeStyle='rgba(194,165,255,0.55)'; ctx.stroke();
+  // arrows
+  ctx.lineWidth=2; ctx.strokeStyle='rgba(194,165,255,0.9)';
+  ctx.beginPath(); ctx.arc(0,0,r*0.55,0.2*Math.PI,1.2*Math.PI); ctx.stroke();
+  ctx.beginPath(); ctx.arc(0,0,r*0.55,1.2*Math.PI,2.2*Math.PI); ctx.stroke();
+  // arrowheads
+  ctx.beginPath(); ctx.moveTo(r*0.55*Math.cos(1.2*Math.PI), r*0.55*Math.sin(1.2*Math.PI));
+  ctx.lineTo(r*0.55*Math.cos(1.2*Math.PI)-4, r*0.55*Math.sin(1.2*Math.PI)+6); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(r*0.55*Math.cos(0.2*Math.PI), r*0.55*Math.sin(0.2*Math.PI));
+  ctx.lineTo(r*0.55*Math.cos(0.2*Math.PI)+4, r*0.55*Math.sin(0.2*Math.PI)-6); ctx.stroke();
+  ctx.restore();
+}
+
+function drawMirrorIcon(ctx,s){
+  const r=s*0.85;
+  ctx.save();
+  // outer
+  ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2);
+  ctx.fillStyle='rgba(182,137,255,0.14)'; ctx.fill();
+  ctx.lineWidth=2; ctx.strokeStyle='rgba(182,137,255,0.6)'; ctx.stroke();
+  // half split
+  ctx.beginPath(); ctx.moveTo(0,-r*0.8); ctx.lineTo(0,r*0.8); ctx.strokeStyle='rgba(255,255,255,0.5)'; ctx.stroke();
+  // halves
+  ctx.beginPath(); ctx.arc(0,0,r*0.7,Math.PI*0.2,Math.PI*1.2); ctx.strokeStyle='rgba(120,180,255,0.9)'; ctx.stroke();
+  ctx.beginPath(); ctx.arc(0,0,r*0.7,-Math.PI*0.8,Math.PI*0.2); ctx.strokeStyle='rgba(200,120,255,0.9)'; ctx.stroke();
+  ctx.restore();
+}
+
+function drawHoodieIcon(ctx,s,phase){
+  const r=s*0.85;
+  ctx.save();
+  const pulse = 0.6 + 0.4*Math.sin(phase);
+  ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2);
+  ctx.fillStyle=`rgba(255,216,107,${0.18+0.12*pulse})`; ctx.fill();
+  ctx.lineWidth=2; ctx.strokeStyle='rgba(255,216,107,0.65)'; ctx.stroke();
+  // hoodie outline
+  ctx.beginPath();
+  const w = r*1.1, h = r*1.0;
+  ctx.moveTo(-w*0.35, -h*0.2);
+  ctx.quadraticCurveTo(0, -h*0.55, w*0.35, -h*0.2); // hood top
+  ctx.lineTo(w*0.35, h*0.35);
+  ctx.quadraticCurveTo(0, h*0.55, -w*0.35, h*0.35);
+  ctx.closePath();
+  ctx.strokeStyle='rgba(255,230,160,0.95)'; ctx.lineWidth=2;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawMusicIcon(ctx,s){
+  const r=s*0.85;
+  ctx.save();
+  // glowing disc
+  ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2);
+  ctx.fillStyle='rgba(255,134,255,0.18)'; ctx.fill();
+  ctx.lineWidth=2; ctx.strokeStyle='rgba(255,134,255,0.6)'; ctx.stroke();
+  // note: stem + head + flag
+  ctx.beginPath();
+  ctx.moveTo(r*0.2,-r*0.6);
+  ctx.lineTo(r*0.2,r*0.3);
+  ctx.arc(r*0.2, r*0.45, r*0.15, Math.PI*1.0, Math.PI*3.0); // head
+  ctx.moveTo(r*0.2,-r*0.6);
+  ctx.quadraticCurveTo(r*0.6,-r*0.8, r*0.55,-r*0.2); // flag
+  ctx.strokeStyle='rgba(255,160,255,0.95)'; ctx.lineWidth=2;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawMagnetIcon(ctx,s){
+  const w=s*1.2, h=s*1.5, t=Math.max(3,s*0.28), rr=s*0.35;
+  ctx.save();
+  ctx.translate(-w/2,-h/2);
+  // Body
+  ctx.beginPath(); roundRectPath(ctx,0,0,w,h,rr); ctx.clip(); ctx.fillStyle='#ff4d4d'; ctx.fillRect(0,0,w,h);
+  // Inner cutout
+  ctx.globalCompositeOperation='destination-out'; ctx.beginPath(); roundRectPath(ctx,t,t,w-2*t,h-2*t,Math.max(2,rr*0.7)); ctx.fill();
+  ctx.globalCompositeOperation='source-over';
+  // Tips
+  ctx.fillStyle='#e7ebf0'; ctx.fillRect(0,0,w*0.28,t); ctx.fillRect(w-w*0.28,0,w*0.28,t);
+  // Outline
+  ctx.lineWidth=1.5; ctx.strokeStyle='rgba(255,255,255,.35)'; ctx.beginPath(); roundRectPath(ctx,0.5,0.5,w-1,h-1,rr); ctx.stroke();
+  ctx.restore();
+}
+
+function drawBanner(text){
+  ctx.save(); ctx.fillStyle='rgba(0,0,0,.65)'; ctx.fillRect(0,H()/2-34,W(),68); ctx.fillStyle='#fff';
+  ctx.font='bold 18px ui-monospace, Menlo, Consolas, monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(text,W()/2,H()/2); ctx.restore();
+}
+
+function circleHit(ax,ay,ar,bx,by,br){ const dx=ax-bx, dy=ay-by; return (dx*dx+dy*dy) <= (ar+br)*(ar+br); }
+
+function gameOver(){
+  over=true; running=false; stopMusic(); sfxGameOver();
+  best=Math.max(best,Math.floor(score)); localStorage.setItem('gd_best',best);
+  document.getElementById('sarcasm').textContent=randomLine(); enableSubmit();
+}
+
+const LINES=["You were dodged by a vegetable.","Broccoli IRL speedrun: success.","Eat green. Not like this.","Grump level rising…","Touch grass? No. Grass touched you."];
+function randomLine(){ return LINES[Math.floor(Math.random()*LINES.length)]; }
+
+// =============== Leaderboard (local) ===============
+const LS_WEEK='gd_lb_week_v5'; const LS_ALL='gd_lb_all_v5'; const NAME_KEY='gd_name';
+let currentTab='week'; let lastRunScore=0; let lastRunTokens=0;
+function LB_load(key){ try{ return JSON.parse(localStorage.getItem(key))||[] }catch{ return [] } }
+function LB_add(name,score,tokens){
+  const week=LB_load(LS_WEEK), all=LB_load(LS_ALL); const row={name,score,tokens,at:Date.now()};
+  week.push(row); all.push(row);
+  week.sort((a,b)=>b.score-a.score); all.sort((a,b)=>b.score-a.score);
+  localStorage.setItem(LS_WEEK,JSON.stringify(week.slice(0,50)));
+  localStorage.setItem(LS_ALL,JSON.stringify(all.slice(0,100)));
+  LB_render();
+}
+function LB_render(){
+  const list=document.getElementById('lb-list'); list.innerHTML='';
+  const src=currentTab==='week'?LB_load(LS_WEEK):LB_load(LS_ALL);
+  document.getElementById('lb-sub').textContent = currentTab==='week' ? "This week's grumpiest" : "All-time grumpiest";
+  src.slice(0,20).forEach((r,i)=>{
+    const row=document.createElement('div'); row.className='lb-row';
+    row.innerHTML = `
+      <div class="lb-left">
+        <div class="lb-rank">${i+1}</div>
+        <div class="lb-name">${escapeHtml(r.name||'Anon')}</div>
+      </div>
+      <div class="lb-score">${r.score}</div>
+      <div class="lb-pill">(${r.tokens||0} $GRMPY)</div>
+    `;
+    list.appendChild(row);
+  });
+}
+function escapeHtml(s){ return (s+"").replace(/[&<>\"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[c])) }
+
+const tabWeek=document.getElementById('tab-week'); const tabAll=document.getElementById('tab-all');
+const submitBtn=document.getElementById('submitScore'); const tweetBtn=document.getElementById('tweetScore'); const nameInput=document.getElementById('name');
+function enableSubmit(){ lastRunScore=Math.floor(score); lastRunTokens=tokenCount; submitBtn.disabled=false; submitBtn.classList.add('glow'); document.getElementById('me-hint').textContent='Nice! Enter your name and submit to the board.'; }
+submitBtn.addEventListener('click',()=>{ const nm=nameInput.value.trim()||'Anon'; LB_add(nm,lastRunScore,lastRunTokens); submitBtn.disabled=true; submitBtn.classList.remove('glow'); document.getElementById('me-hint').textContent='Score submitted!'; });
+tweetBtn.addEventListener('click',()=>{ const sc=lastRunScore||Math.floor(score)||0; const txt=encodeURIComponent(`I scored ${sc} in Grumpy Dodge — The Attack of the Broccoli. Try and beat me!`); const url=encodeURIComponent('https://x.com/grumpwear'); window.open(`https://twitter.com/intent/tweet?text=${txt}&url=${url}`,'_blank'); });
+(function initName(){ const saved=localStorage.getItem(NAME_KEY); if(saved) nameInput.value=saved; })();
+nameInput.addEventListener('change',()=> localStorage.setItem(NAME_KEY,nameInput.value.trim()));
+
+tabWeek.addEventListener('click',()=>{ currentTab='week'; tabWeek.classList.add('active'); tabAll.classList.remove('active'); LB_render(); });
+tabAll.addEventListener('click',()=>{ currentTab='all'; tabAll.classList.add('active'); tabWeek.classList.remove('active'); LB_render(); });
+LB_render();
+
+// =============== Kickoff ===============
+addEventListener('load', ()=>{ start(); });
+</script>
+</body>
+</html>
