@@ -97,6 +97,24 @@
   </style>
 </head>
 <body>
+
+<script>
+(function(){
+  try{
+    const style=document.createElement('style');
+    style.textContent='#__dbg{position:fixed;left:8px;bottom:8px;right:8px;max-height:45vh;overflow:auto;background:rgba(0,0,0,.85);color:#ffb3b3;padding:10px 12px;border:1px solid #d33;border-radius:8px;font:12px/1.45 ui-monospace,Menlo,Consolas,monospace;z-index:999999;white-space:pre-wrap}';
+    document.head.appendChild(style);
+    function ensure(){let b=document.getElementById('__dbg'); if(!b){ b=document.createElement('pre'); b.id='__dbg'; document.body.appendChild(b);} return b;}
+    function show(m){ ensure().textContent += m + '
+'; }
+    window.__dbgShow = show;
+    window.addEventListener('error', e=>{ show('[ERR] '+e.message+' @ '+e.filename+':'+e.lineno+':'+e.colno); });
+    window.addEventListener('unhandledrejection', e=>{ show('[REJ] '+(e.reason && (e.reason.stack||e.reason.message||e.reason))); });
+    show('[DBG] overlay active');
+  }catch(e){ console.error('DBG overlay failed', e); }
+})();
+</script>
+
   <div id="link-tray">
     <a class="link-chip" href="https://x.com/GrumpWear" target="_blank">X / @grumpwear</a>
     <a class="link-chip" href="https://www.tiktok.com/@grumpwear" target="_blank">TikTok / @grumpwear</a>
@@ -794,7 +812,31 @@ tabAll.addEventListener('click',()=>{ currentTab='all'; tabAll.classList.add('ac
 LB_render();
 
 // =============== Kickoff ===============
-addEventListener('load', ()=>{ start(); });
+/* autoplay removed for click-to-start */
 </script>
+
+<div id="tapStart" style="position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.35);backdrop-filter:blur(2px);font:16px/1.3 system-ui;color:#ddd;z-index:99998">
+  <div style="padding:12px 18px;border:1px solid rgba(255,255,255,.2);border-radius:12px;background:rgba(0,0,0,.35)">Click or press any key to start</div>
+</div>
+<script>
+(function(){
+  let started=false;
+  function kickoff(){
+    if(started) return;
+    started=true;
+    try{ if(window.audioCtx && audioCtx.state==='suspended'){ audioCtx.resume(); } }catch(_){}
+    try{ if(window.ctx && ctx.resume && typeof ctx.resume==='function'){ ctx.resume(); } }catch(_){}
+    try{
+      if (typeof start === 'function') { start(); }
+      else if (window.init) { window.init(); }
+      else { (window.__dbgShow||console.log)('[WARN] No start() or init() found'); }
+    }catch(e){ (window.__dbgShow||console.error)('[START FAIL] '+(e.stack||e)); }
+    const el=document.getElementById('tapStart'); if(el) el.remove();
+  }
+  addEventListener('pointerdown', kickoff, { once:true });
+  addEventListener('keydown', kickoff, { once:true });
+})();
+</script>
+
 </body>
 </html>
